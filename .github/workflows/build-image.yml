@@ -43,7 +43,7 @@ jobs:
       - name: Build image
         env:
           dockerfile: ./src/ArtPlatform.API/Dockerfile
-          docker_image_name: ghcr.io/damientehdemon/artplatform-api
+          docker_image_name: ghcr.io/D4M13N-D3V/artplatform-api
         run: |
           docker build --build-arg NUGET_SOURCE=https://nuget.pkg.github.com/data443/index.json --build-arg NUGET_API_KEY=${{ secrets.PACKAGE_TOKEN }} -t ${{ env.docker_image_name }}:${{ env.GitVersion_MajorMinorPatch }} -f ${{ env.dockerfile }} --force-rm .
           docker tag ${{ env.docker_image_name }}:${{ env.GitVersion_MajorMinorPatch }} ${{ env.docker_image_name }}:latest
