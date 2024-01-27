@@ -13,12 +13,10 @@ RUN dotnet restore "ArtPlatform.API/ArtPlatform.API.csproj"
 COPY . .
 WORKDIR "/src/ArtPlatform.API/ArtPlatform.API"
 RUN dotnet build "ArtPlatform.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
-
-FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "ArtPlatform.API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "ArtPlatform.API.dll"]
