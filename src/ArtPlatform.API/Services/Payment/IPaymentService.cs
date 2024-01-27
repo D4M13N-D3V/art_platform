@@ -5,5 +5,6 @@ namespace ArtPlatform.API.Services.Payment;
 public interface IPaymentService
 {
     string CreateSellerAccount();
-    string CreateSellerAccountOnboardingUrl(string accountId);
+    string CreateSellerAccountOnboardingUrl(string accountId); 
+    bool SellerAccountIsOnboarded(string accountId);
 }

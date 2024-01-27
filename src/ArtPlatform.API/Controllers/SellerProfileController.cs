@@ -222,6 +222,10 @@ public class SellerProfileController : Controller
         }
         if(existingSellerProfile.StripeAccountId==null)
             return BadRequest("Account does not have a payment account.");
+
+        if (_paymentService.SellerAccountIsOnboarded(existingSellerProfile.StripeAccountId) == false)
+            return BadRequest("Account has not finished onboarding.");
+        
         var result = _paymentService.CreateSellerAccountOnboardingUrl(existingSellerProfile.StripeAccountId);
         return Ok(result);
     }

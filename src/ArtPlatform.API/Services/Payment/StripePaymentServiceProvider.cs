@@ -37,4 +37,11 @@ public class StripePaymentServiceProvider:IPaymentService
         var url = service.Create(options);
         return url.Url;
     }
+    
+    public bool SellerAccountIsOnboarded(string accountId)
+    {
+        var service = new AccountService();
+        var account = service.Get(accountId);
+        return account.Requirements.CurrentlyDue.Count == 0 && account.ChargesEnabled==true && account.DetailsSubmitted==true;
+    }
 }
