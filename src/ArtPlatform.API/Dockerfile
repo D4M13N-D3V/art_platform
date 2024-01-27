@@ -7,7 +7,8 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["ArtPlatform.API.csproj", "ArtPlatform.API/"]
+COPY ["/src/ArtPlatform.API/ArtPlatform.API.csproj", "ArtPlatform.API/"]
+COPY ["/src/ArtPlatform.Database/ArtPlatform.Database.csproj", "ArtPlatform.Database/"]
 RUN dotnet restore "ArtPlatform.API/ArtPlatform.API.csproj"
 COPY . .
 WORKDIR "/src/ArtPlatform.API"
