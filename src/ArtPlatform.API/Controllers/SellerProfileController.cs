@@ -1,6 +1,7 @@
 using ArtPlatform.API.Extensions;
 using ArtPlatform.API.Models.PortfolioModel;
 using ArtPlatform.API.Models.SellerProfile;
+using ArtPlatform.API.Services.Payment;
 using ArtPlatform.API.Services.Storage;
 using ArtPlatform.Database;
 using ArtPlatform.Database.Entities;
@@ -15,12 +16,14 @@ namespace ArtPlatform.API.Controllers;
 public class SellerProfileController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly IStorage _storage;
+    private readonly IStorageService _storageService;
+    private readonly IPaymentService _paymentService;
 
 
-    public SellerProfileController(ApplicationDbContext dbContext, IStorage storage)
+    public SellerProfileController(ApplicationDbContext dbContext, IPaymentService paymentService, IStorageService storageService)
     {
-        _storage = storage;
+        _paymentService = paymentService;
+        _storageService = storageService;
         _dbContext = dbContext;
     }
     
@@ -104,7 +107,7 @@ public class SellerProfileController : Controller
 
         var portfolio = await _dbContext.SellerProfilePortfolioPieces
             .FirstAsync(x => x.SellerProfileId == existingSellerProfile.Id && x.Id==portfolioId);
-        var content = await _storage.DownloadImageAsync(portfolio.FileReference);
+        var content = await _storageService.DownloadImageAsync(portfolio.FileReference);
         return new FileStreamResult(content, "application/octet-stream");
     }
 
@@ -142,7 +145,7 @@ public class SellerProfileController : Controller
             return Unauthorized("Account is not a seller.");
         }
 
-        var url = await _storage.UploadImageAsync(file, Guid.NewGuid().ToString());
+        var url = await _storageService.UploadImageAsync(file, Guid.NewGuid().ToString());
         var portfolio = new SellerProfilePortfolioPiece()
         {
             SellerProfileId = existingSellerProfile.Id,
@@ -177,5 +180,49 @@ public class SellerProfileController : Controller
         _dbContext.SellerProfilePortfolioPieces.Remove(portfolio);
         await _dbContext.SaveChangesAsync();
         return Ok();
+    }
+    
+    [HttpPost]
+    [Authorize("write:seller-profile")]
+    [Route("Payment")]
+    public async Task<IActionResult> CreatePaymentAccount()
+    {
+        var userId = User.GetUserId();
+        var existingSellerProfile = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(sellerProfile=>sellerProfile.UserId==userId);
+        if (existingSellerProfile == null)
+        {
+            var sellerProfileRequest = await _dbContext.SellerProfileRequests.FirstOrDefaultAsync(request=>request.UserId==userId && request.Accepted==false);
+            if(sellerProfileRequest!=null)
+                return BadRequest("Account has requested to be a seller and not been approved yet.");
+            return Unauthorized("Account is not a seller.");
+        }
+        if(existingSellerProfile.StripeAccountId!=null)
+            return BadRequest("Account already has a payment account.");
+        var accountId = _paymentService.CreateSellerAccount();
+        existingSellerProfile.StripeAccountId = accountId;
+        existingSellerProfile = _dbContext.UserSellerProfiles.Update(existingSellerProfile).Entity;
+        await _dbContext.SaveChangesAsync();
+        var result = existingSellerProfile.ToModel();
+        return Ok(result);
+    }
+    
+    [HttpGet]
+    [Authorize("write:seller-profile")]
+    [Route("Payment")]
+    public async Task<IActionResult> GetPaymentAccount()
+    {
+        var userId = User.GetUserId();
+        var existingSellerProfile = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(sellerProfile=>sellerProfile.UserId==userId);
+        if (existingSellerProfile == null)
+        {
+            var sellerProfileRequest = await _dbContext.SellerProfileRequests.FirstOrDefaultAsync(request=>request.UserId==userId && request.Accepted==false);
+            if(sellerProfileRequest!=null)
+                return BadRequest("Account has requested to be a seller and not been approved yet.");
+            return Unauthorized("Account is not a seller.");
+        }
+        if(existingSellerProfile.StripeAccountId==null)
+            return BadRequest("Account does not have a payment account.");
+        var result = _paymentService.CreateSellerAccountOnboardingUrl(existingSellerProfile.StripeAccountId);
+        return Ok(result);
     }
 }

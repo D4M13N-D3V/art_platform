@@ -15,11 +15,11 @@ namespace ArtPlatform.API.Controllers;
 public class SellerServiceController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly IStorage _storage;
+    private readonly IStorageService _storageService;
 
-    public SellerServiceController(ApplicationDbContext dbContext, IStorage storage)
+    public SellerServiceController(ApplicationDbContext dbContext, IStorageService storageService)
     {
-        _storage = storage;
+        _storageService = storageService;
         _dbContext = dbContext;
     }
     
@@ -162,7 +162,7 @@ public class SellerServiceController : Controller
         var portfolio = await _dbContext.SellerProfilePortfolioPieces
             .FirstAsync(x => x.SellerProfileId == existingSellerProfile.Id
                              && x.SellerServiceId == sellerServiceId && x.Id==portfolioId);
-        var content = await _storage.DownloadImageAsync(portfolio.FileReference);
+        var content = await _storageService.DownloadImageAsync(portfolio.FileReference);
         return new FileStreamResult(content, "application/octet-stream");
     }
     
@@ -181,7 +181,7 @@ public class SellerServiceController : Controller
             return Unauthorized("Account is not a seller.");
         }
 
-        var url = await _storage.UploadImageAsync(file, Guid.NewGuid().ToString());
+        var url = await _storageService.UploadImageAsync(file, Guid.NewGuid().ToString());
         var portfolio = new SellerProfilePortfolioPiece()
         {
             SellerProfileId = existingSellerProfile.Id,

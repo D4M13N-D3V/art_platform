@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.Http;
 
 namespace ArtPlatform.API.Services.Storage
 {
-    public class ImgCdnProvider : IStorage
+    public class ImgCdnStorageServiceProvider : IStorageService
     {
         private readonly HttpClient _client;
         private const string ApiKey = "5386e05a3562c7a8f984e73401540836";
 
-        public ImgCdnProvider()
+        public ImgCdnStorageServiceProvider()
         {
             _client = new HttpClient { BaseAddress = new Uri("https://imgcdn.dev/") };
         }

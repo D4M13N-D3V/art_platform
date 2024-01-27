@@ -15,11 +15,11 @@ namespace ArtPlatform.API.Controllers;
 public class OrderController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly IStorage _storage;
+    private readonly IStorageService _storageService;
  
-    public OrderController(ApplicationDbContext dbContext, IStorage storage)
+    public OrderController(ApplicationDbContext dbContext, IStorageService storageService)
     {
-        _storage = storage;
+        _storageService = storageService;
         _dbContext = dbContext;
     }
 
@@ -291,7 +291,7 @@ public class OrderController : Controller
         if(message==null)
             return BadRequest("Message does not exist or does not belong to this order.");
         
-        var url = await _storage.UploadImageAsync(file, Guid.NewGuid().ToString());
+        var url = await _storageService.UploadImageAsync(file, Guid.NewGuid().ToString());
         var attachment = new SellerServiceOrderMessageAttachment()
         {
             SellerServiceOrderMessageId = message.Id,
@@ -326,7 +326,7 @@ public class OrderController : Controller
         if(message==null)
             return BadRequest("Message does not exist or does not belong to this order.");
         
-        var content = await _storage.DownloadImageAsync(message.Attachments.First().FileReference);
+        var content = await _storageService.DownloadImageAsync(message.Attachments.First().FileReference);
         return new FileStreamResult(content, "application/octet-stream");
     }
 }

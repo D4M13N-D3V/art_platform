@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Security.Claims;
 using ArtPlatform.API.Middleware;
 using ArtPlatform.API.Middleware.Authentication;
+using ArtPlatform.API.Services.Payment;
 using ArtPlatform.API.Services.Storage;
 using ArtPlatform.Database;
 using Auth0.AspNetCore.Authentication;
@@ -15,7 +16,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 
-builder.Services.AddSingleton<IStorage,ImgCdnProvider>();
+builder.Services.AddSingleton<IStorageService,ImgCdnStorageServiceProvider>();
+builder.Services.AddSingleton<IPaymentService,StripePaymentServiceProvider>();
 
 
 builder.Services.AddHttpContextAccessor();
