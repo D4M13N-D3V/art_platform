@@ -7,8 +7,4 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\ArtPlatform.Database\ArtPlatform.Database.csproj" />
-    </ItemGroup>
-
 </Project>
