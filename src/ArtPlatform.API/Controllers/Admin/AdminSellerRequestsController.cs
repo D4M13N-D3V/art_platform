@@ -27,7 +27,6 @@ public class AdminSellerRequestsController : Controller
     /// <returns>A list of seller profile requests</returns>
     [HttpGet]
     [Authorize("read:seller-profile-request")]
-    [Route("SellerRequests")]
     public async Task<IActionResult> GetSellerRequests(int offset = 0, int pageSize = 10)
     {
         var requests = _dbContext.SellerProfileRequests.Skip(offset).Take(pageSize).ToList();
@@ -41,7 +40,7 @@ public class AdminSellerRequestsController : Controller
     /// <returns>The number of requests.</returns>
     [HttpGet]
     [Authorize("read:seller-profile-request")]
-    [Route("SellerRequests/Count")]
+    [Route("Count")]
     public async Task<IActionResult> GetSellerRequestsCount()
     {
         var result = _dbContext.SellerProfileRequests.Count();
@@ -55,7 +54,7 @@ public class AdminSellerRequestsController : Controller
     /// <returns>The new seller profile.</returns>
     [HttpPut]
     [Authorize("write:seller-profile-request")]
-    [Route("SellerRequests/{userId}")]
+    [Route("{userId}")]
     public async Task<IActionResult> AcceptSellerRequest(string userId)
     {
         var request = await _dbContext.SellerProfileRequests.FirstOrDefaultAsync(request=>request.UserId==userId);

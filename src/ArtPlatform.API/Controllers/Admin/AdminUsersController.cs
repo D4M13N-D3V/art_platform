@@ -1,13 +1,15 @@
+using ArtPlatform.API.Extensions;
 using ArtPlatform.Database;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArtPlatform.API.Controllers;
 
 [ApiController]
 [Authorize("admin")]
 [Route("api/admin/[controller]")]
-public class AdminUsersController
+public class AdminUsersController:ControllerBase
 {
     private readonly ApplicationDbContext _dbContext;
 
@@ -17,57 +19,143 @@ public class AdminUsersController
     }
     
     [HttpGet]
-    public Task<IActionResult> GetUsers(string search="", int offset = 0, int pageSize = 10)
+    public async Task<IActionResult> GetUsers(string search="", int offset = 0, int pageSize = 10)
     {
-        throw new NotImplementedException();
+        var users = await _dbContext.Users
+            .Where(x=>x.DisplayName.Contains(search) || x.Email.Contains(search))
+            .Skip(offset).Take(pageSize).ToListAsync();
+        return Ok(users);
     }
     
     [HttpGet("Count")]
-    public Task<IActionResult> GetUsersCount(string search="")
+    public async Task<IActionResult> GetUsersCount(string search="")
     {
-        throw new NotImplementedException();
+        var result = await _dbContext.Users
+            .Where(x=>x.DisplayName.Contains(search) || x.Email.Contains(search))
+            .CountAsync();
+        return Ok(result);
     }
     
     [HttpGet("{userId}")]
-    public Task<IActionResult> GetUser(string userId)
+    public async Task<IActionResult> GetUser(string userId)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x=>x.Id==userId);
+
+        if (user == null)
+            return NotFound("User not found.");
+        
+        return Ok(user);
     }
     
     [HttpGet("{userId}/Orders")]
-    public Task<IActionResult> GetUserOrders(string userId)
+    public async Task<IActionResult> GetUserOrders(string userId)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.Include(x=>x.Orders).FirstOrDefaultAsync(x=>x.Id==userId);
+        
+        if (user == null)
+            return NotFound("User not found.");
+        
+        return Ok(user.Orders);
     }
     
     [HttpPut("{userId}/Suspend")]
-    public Task<IActionResult> SuspendUser(string userId)
+    public async Task<IActionResult> SuspendUser(string userId, [FromQuery]string reason, [FromQuery]int days)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x=>x.Id==userId);
+        
+        if (user == null)
+            return NotFound("User not found.");
+        
+        user.Suspended = true;
+        user.SuspendedDate = DateTime.UtcNow;
+        user.SuspendedReason = reason;
+        user.SuspendAdminId = User.GetUserId();
+        user.UnsuspendDate = DateTime.UtcNow.AddDays(days);
+        _dbContext.Users.Update(user);
+        await _dbContext.SaveChangesAsync();
+        return Ok();
     }
     
     [HttpPut("{userId}/Unsuspend")]
-    public Task<IActionResult> UnsuspendUser(string userId)
+    public async Task<IActionResult> UnsuspendUser(string userId)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x=>x.Id==userId);
+        
+        if (user == null)
+            return NotFound("User not found.");
+        
+        user.Suspended = false;
+        user.SuspendedDate = null;
+        user.SuspendedReason = null;
+        user.SuspendAdminId = null;
+        user.UnsuspendDate = null;
+        _dbContext.Users.Update(user);
+        await _dbContext.SaveChangesAsync();
+        return Ok();
     }
     
-    [HttpPut("{userId}/Terminate")]
-    public Task<IActionResult> TerminateUser(string userId)
+    [HttpPut("{userId}/Ban")]
+    public async Task<IActionResult> BanUser(string userId, [FromQuery]string reason, [FromQuery]int days)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x=>x.Id==userId);
+        
+        if (user == null)
+            return NotFound("User not found.");
+        
+        user.Banned = true;
+        user.BannedDate = DateTime.UtcNow;
+        user.BannedReason = reason;
+        user.BanAdminId = User.GetUserId();
+        user.UnbanDate = DateTime.UtcNow.AddDays(days);
+        _dbContext.Users.Update(user);
+        await _dbContext.SaveChangesAsync();
+        return Ok();
+    }
+    
+    [HttpPut("{userId}/Unban")]
+    public async Task<IActionResult> UnbanUser(string userId)
+    {
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x=>x.Id==userId);
+        
+        if (user == null)
+            return NotFound("User not found.");
+        
+        user.Banned = false;
+        user.BannedDate = null;
+        user.BannedReason = null;
+        user.BanAdminId = null;
+        user.UnbanDate = null;
+        _dbContext.Users.Update(user);
+        await _dbContext.SaveChangesAsync();
+        return Ok();
     }
     
     [HttpPut("{userId}/SetDisplayName")]
-    public Task<IActionResult> SetDisplayName(string userId, [FromBody]string displayName)
+    public async Task<IActionResult> SetDisplayName(string userId, [FromBody]string displayName)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x=>x.Id==userId);
+        
+        if (user == null)
+            return NotFound("User not found.");
+        
+        user.DisplayName = displayName;
+        _dbContext.Users.Update(user);
+        await _dbContext.SaveChangesAsync();
+        return Ok();
     }
     
     [HttpPut("{userId}/SetBiography")]
-    public Task<IActionResult> SetBiography(string userId, [FromBody]string biography)
+    public async Task<IActionResult> SetBiography(string userId, [FromBody]string biography)
     {
-        throw new NotImplementedException();
+        var user = await _dbContext.Users.FirstOrDefaultAsync(x=>x.Id==userId);
+        
+        if (user == null)
+            return NotFound("User not found.");
+        
+        user.Biography = biography;
+        _dbContext.Users.Update(user);
+        await _dbContext.SaveChangesAsync();
+        return Ok();
     }
     
 }

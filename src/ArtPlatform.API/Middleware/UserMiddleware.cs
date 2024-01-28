@@ -35,7 +35,7 @@ public class UserMiddleware
                 dbContext.Users.Add(user);
                 await dbContext.SaveChangesAsync();
             }
-            else
+            else 
             {   
                 user.Email= context.User.Claims.FirstOrDefault(x=>x.Type==ClaimTypes.Email)?.Value ?? string.Empty;
                 dbContext.Users.Update(user);
