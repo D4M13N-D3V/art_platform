@@ -60,7 +60,7 @@ public class OrderController : Controller
         {
             var session = stripeEvent.Data.Object as Session;
             var connectedAccountId = stripeEvent.Account;
-            var orderId = session.Metadata["orderId"];
+            var orderId = session.Metadata["/OrderId"];
             var order = await _dbContext.SellerServiceOrders
                 .Include(x=>x.Seller)
                 .Include(x=>x.SellerService)
@@ -77,7 +77,7 @@ public class OrderController : Controller
     }
     
     [HttpGet]
-    [Route("Orders")]
+    [Route("/Orders")]
     [Authorize("read:orders")]
     public async Task<IActionResult> GetOrders(int offset = 0, int pageSize = 10, EnumOrderStatus? status = null)
     {
@@ -88,9 +88,20 @@ public class OrderController : Controller
         var result = orders.Select(x => x.ToModel()).ToList();
         return Ok(result);
     }
+    [HttpGet]
+    [Route("/Orders/{orderId:int}")]
+    [Authorize("read:orders")]
+    public async Task<IActionResult> GetOrder(int orderId,int offset = 0, int pageSize = 10, EnumOrderStatus? status = null)
+    {
+        var userId = User.GetUserId();
+        var order = await _dbContext.SellerServiceOrders
+            .FirstAsync(x => x.Id==orderId && x.BuyerId == userId && status == null ? true : status == x.Status);
+        var result = order.ToModel();
+        return Ok(result);
+    }
     
     [HttpPost]
-    [Route("Sellers/{sellerId:int}/Services/{serviceId:int}")]
+    [Route("/Sellers/{sellerId:int}/Services/{serviceId:int}")]
     [Authorize("write:orders")]
     public async Task<IActionResult> CreateOrder(int sellerId, int serviceId)
     {
@@ -128,7 +139,7 @@ public class OrderController : Controller
     
     [HttpDelete]
     [Authorize("write:orders")]
-    [Route("Orders/{orderId:int}")]
+    [Route("/api/Orders/{orderId:int}")]
     public async Task<IActionResult> CancelOrder(int orderId)
     {
         var userId = User.GetUserId();
@@ -136,11 +147,11 @@ public class OrderController : Controller
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.BuyerId==userId);
         if(order==null)
-            return NotFound("Order not found.");
+            return NotFound("/Order not found.");
         if(order.BuyerId!=userId)
             return BadRequest("You are not the buyer of this order.");
         if(order.Status==EnumOrderStatus.Completed)
-            return BadRequest("Order is not in a cancellable state.");
+            return BadRequest("/Order is not in a cancellable state.");
         order.Status = EnumOrderStatus.Cancelled;
         order.EndDate = DateTime.UtcNow;
         order = _dbContext.SellerServiceOrders.Update(order).Entity;
@@ -151,7 +162,7 @@ public class OrderController : Controller
     
     [HttpPut]
     [Authorize("write:orders")]
-    [Route("Orders/{orderId:int}/AcceptPrice")]
+    [Route("/api/Orders/{orderId:int}/AcceptPrice")]
     public async Task<IActionResult> AcceptPrice(int orderId)
     {
         var userId = User.GetUserId();
@@ -161,19 +172,19 @@ public class OrderController : Controller
             .Include(x=>x.Seller)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.BuyerId==userId);
         if(order==null)
-            return NotFound("Order not found.");
+            return NotFound("/Order not found.");
         if(order.Seller.UserId!=userId)
             return BadRequest("You are not the seller of this order.");
         if(order.Status==EnumOrderStatus.Completed)
-            return BadRequest("Order is already complete.");
+            return BadRequest("/Order is already complete.");
         if(order.Status<EnumOrderStatus.DiscussingRequirements)
-            return BadRequest("Order has not been started yet.");
+            return BadRequest("/Order has not been started yet.");
 
         if(string.IsNullOrEmpty(order.PaymentUrl)==false)
-            return BadRequest("Order has price already been agreed on.");
+            return BadRequest("/Order has price already been agreed on.");
         
         if(order.Status==EnumOrderStatus.WaitingForPayment)
-            return BadRequest("Order is waiting for payment.");
+            return BadRequest("/Order is waiting for payment.");
         
         order.TermsAcceptedDate = DateTime.UtcNow;
 
@@ -196,7 +207,7 @@ public class OrderController : Controller
     }
     [HttpPut]
     [Authorize("write:orders")]
-    [Route("Orders/{orderId:int}/Payment")]
+    [Route("/api/Orders/{orderId:int}/Payment")]
     public async Task<IActionResult> Payment(int orderId)
     {
         var userId = User.GetUserId();
@@ -206,15 +217,15 @@ public class OrderController : Controller
             .Include(x=>x.Seller)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.BuyerId==userId);
         if(order==null)
-            return NotFound("Order not found.");
+            return NotFound("/Order not found.");
         if(order.Seller.UserId!=userId)
             return BadRequest("You are not the seller of this order.");
         if(order.Status==EnumOrderStatus.Completed)
-            return BadRequest("Order is already complete.");
+            return BadRequest("/Order is already complete.");
         if(order.Status!=EnumOrderStatus.WaitingForPayment)
-            return BadRequest("Order does not need to be paid for.");
-        if(order.PaymentUrl!=null)
-            return BadRequest("Order has already has a payment url.");
+            return BadRequest("/Order does not need to be paid for.");
+        if (order.PaymentUrl != null)
+            return Ok(order.PaymentUrl);
         var url = _paymentService.ChargeForService(order.Id, order.Seller.StripeAccountId, order.Price);
         order.PaymentUrl = url;
         order = _dbContext.SellerServiceOrders.Update(order).Entity;
@@ -224,7 +235,7 @@ public class OrderController : Controller
     
     [HttpPut]
     [Authorize("write:orders")]
-    [Route("Orders/{orderId:int}/Accept")]
+    [Route("/api/Orders/{orderId:int}/Accept")]
     public async Task<IActionResult> Accept(int orderId)
     {
         var userId = User.GetUserId();
@@ -233,17 +244,17 @@ public class OrderController : Controller
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.BuyerId==userId);
         if(order==null)
-            return NotFound("Order not found.");
+            return NotFound("/Order not found.");
         if(order.Seller.UserId!=userId)
             return BadRequest("You are not the seller of this order.");
         if(order.Status==EnumOrderStatus.Completed)
-            return BadRequest("Order is already complete.");
+            return BadRequest("/Order is already complete.");
         if(order.Status<EnumOrderStatus.InProgress)
-            return BadRequest("Order has not been started yet.");
+            return BadRequest("/Order has not been started yet.");
         if(order.Status<EnumOrderStatus.PendingReview)
-            return BadRequest("Order is in progress and not pending review.");
+            return BadRequest("/Order is in progress and not pending review.");
         if(order.Status==EnumOrderStatus.WaitingForPayment)
-            return BadRequest("Order is waiting for payment.");
+            return BadRequest("/Order is waiting for payment.");
         
         if(order.Seller.PrepaymentRequired)
             order.Status = EnumOrderStatus.Completed;
@@ -263,7 +274,7 @@ public class OrderController : Controller
     
     [HttpDelete]
     [Authorize("write:orders")]
-    [Route("Orders/{orderId:int}/Deny")]
+    [Route("/api/Orders/{orderId:int}/Deny")]
     public async Task<IActionResult> Deny(int orderId)
     {
         var userId = User.GetUserId();
@@ -272,15 +283,15 @@ public class OrderController : Controller
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.BuyerId==userId);
         if(order==null)
-            return NotFound("Order not found.");
+            return NotFound("/Order not found.");
         if(order.Seller.UserId!=userId)
             return BadRequest("You are not the seller of this order.");
         if(order.Status==EnumOrderStatus.Completed)
-            return BadRequest("Order is already complete.");
+            return BadRequest("/Order is already complete.");
         if(order.Status<EnumOrderStatus.InProgress)
-            return BadRequest("Order has not been started yet.");
+            return BadRequest("/Order has not been started yet.");
         if(order.Status<EnumOrderStatus.PendingReview)
-            return BadRequest("Order is in progress and not pending review.");
+            return BadRequest("/Order is in progress and not pending review.");
         order.Status = EnumOrderStatus.InProgress;
         order.TermsAcceptedDate = DateTime.UtcNow;
         order = _dbContext.SellerServiceOrders.Update(order).Entity;
@@ -291,7 +302,7 @@ public class OrderController : Controller
     
     [HttpPost]
     [Authorize("write:orders")]
-    [Route("Orders/{orderId:int}/Review")]
+    [Route("/api/Orders/{orderId:int}/Review")]
     public async Task<IActionResult> Review(int orderId, [FromBody] SellerServiceOrderReviewModel model)
     {
         var userId = User.GetUserId();
@@ -301,13 +312,13 @@ public class OrderController : Controller
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.BuyerId==userId);
         if(order==null)
-            return NotFound("Order not found.");
+            return NotFound("/Order not found.");
         if(order.BuyerId!=userId)
             return BadRequest("You are not the buyer of this order.");
         if(order.Status!=EnumOrderStatus.Completed)
-            return BadRequest("Order is not complete.");
+            return BadRequest("/Order is not complete.");
         if(order.Reviews.Any(x=>x.SellerServiceOrderId==orderId))
-            return BadRequest("Order has already been reviewed.");
+            return BadRequest("/Order has already been reviewed.");
         var review = new SellerServiceOrderReview()
         {
             SellerServiceOrderId = orderId,
@@ -325,7 +336,7 @@ public class OrderController : Controller
     
     [HttpGet]
     [Authorize("read:orders")]
-    [Route("Orders/{orderId:int}/Messages")]
+    [Route("/api/Orders/{orderId:int}/Messages")]
     public async Task<IActionResult> GetMessages(int orderId, int offset = 0, int pageSize = 10)
     {
         var userId = User.GetUserId();
@@ -333,7 +344,7 @@ public class OrderController : Controller
             .Include(x=>x.Seller)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.BuyerId==userId);
         if(order==null)
-            return NotFound("Order not found.");
+            return NotFound("/Order not found.");
         if(order.BuyerId!=userId && order.Seller.UserId!=userId)
             return BadRequest("You are not the buyer or seller of this order.");
         var messages = _dbContext.SellerServiceOrderMessages
@@ -348,7 +359,7 @@ public class OrderController : Controller
     
     [HttpPost]
     [Authorize("write:orders")]
-    [Route("Orders/{orderId:int}/Message")]
+    [Route("/api/Orders/{orderId:int}/Message")]
     public async Task<IActionResult> Message(int orderId, [FromBody] SellerServiceOrderMessageModel model)
     {
         var userId = User.GetUserId();
@@ -358,13 +369,13 @@ public class OrderController : Controller
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.BuyerId==userId);
         if(order==null)
-            return NotFound("Order not found.");
+            return NotFound("/Order not found.");
         if(order.Status==EnumOrderStatus.Completed || order.Status==EnumOrderStatus.Cancelled)
-            return BadRequest("Order is already complete.");
+            return BadRequest("/Order is already complete.");
         if(order.BuyerId!=userId && order.Seller.UserId!=userId)
             return BadRequest("You are not the buyer or seller of this order.");
         if(order.Status<EnumOrderStatus.Waitlist)
-            return BadRequest("Order is not accepted.");
+            return BadRequest("/Order is not accepted.");
         var message = new SellerServiceOrderMessage()
         {
             SellerServiceOrderId = orderId,
@@ -380,7 +391,7 @@ public class OrderController : Controller
     
     [HttpPost]
     [Authorize("write:orders")]
-    [Route("Orders/{orderId:int}/Message/{messageId:int}/Attachment")]
+    [Route("/api/Orders/{orderId:int}/Message/{messageId:int}/Attachment")]
     public async Task<IActionResult> MessageAttachment(int orderId, int messageId,IFormFile file)
     {
         var userId = User.GetUserId();
@@ -390,13 +401,13 @@ public class OrderController : Controller
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId);
         if(order==null)
-            return NotFound("Order not found.");
+            return NotFound("/Order not found.");
         if(order.BuyerId!=userId && order.Seller.UserId!=userId)
             return BadRequest("You are not the buyer or seller of this order.");
         if(order.Status==EnumOrderStatus.Completed || order.Status==EnumOrderStatus.Cancelled)
-            return BadRequest("Order is already complete.");
+            return BadRequest("/Order is already complete.");
         if(order.Status<EnumOrderStatus.Waitlist)
-            return BadRequest("Order is not accepted.");
+            return BadRequest("/Order is not accepted.");
         
         var message = _dbContext.SellerServiceOrderMessages.First(x=>x.Id==messageId && x.SellerServiceOrderId==orderId);
         if(message==null)
@@ -414,7 +425,7 @@ public class OrderController : Controller
     }
     [HttpGet]
     [Authorize("read:orders")]
-    [Route("Orders/{orderId:int}/Message/{messageId:int}/Attachment")]
+    [Route("/api/Orders/{orderId:int}/Message/{messageId:int}/Attachment")]
     public async Task<IActionResult> MessageAttachments(int orderId, int messageId)
     {
         var userId = User.GetUserId();
@@ -424,13 +435,13 @@ public class OrderController : Controller
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId);
         if(order==null)
-            return NotFound("Order not found.");
+            return NotFound("/Order not found.");
         if(order.BuyerId!=userId && order.Seller.UserId!=userId)
             return BadRequest("You are not the buyer or seller of this order.");
         if(order.Status==EnumOrderStatus.Completed || order.Status==EnumOrderStatus.Cancelled)
-            return BadRequest("Order is already complete.");
+            return BadRequest("/Order is already complete.");
         if(order.Status<EnumOrderStatus.Waitlist)
-            return BadRequest("Order is not accepted.");
+            return BadRequest("/Order is not accepted.");
         
         var message = _dbContext.SellerServiceOrderMessages.Include(x=>x.Attachments)
             .First(x=>x.Id==messageId && x.SellerServiceOrderId==orderId);

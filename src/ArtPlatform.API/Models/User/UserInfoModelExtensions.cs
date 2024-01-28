@@ -16,7 +16,6 @@ public static class UserInfoModelExtensions
     {
         existingUser.DisplayName = user.DisplayName;
         existingUser.Biography = user.Biography;
-        existingUser.Email = user.Email;
         return existingUser;
     }
 }

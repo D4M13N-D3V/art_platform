@@ -33,8 +33,4 @@
       <ProjectReference Include="..\ArtPlatform.Database\ArtPlatform.Database.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="react\" />
-    </ItemGroup>
-
 </Project>

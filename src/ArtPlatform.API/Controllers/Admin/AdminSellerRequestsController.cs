@@ -9,12 +9,12 @@ namespace ArtPlatform.API.Controllers;
 
 [ApiController]
 [Authorize("admin")]
-[Route("api/[controller]")]
-public class AdminSellerProfileRequestsController : Controller
+[Route("api/admin/[controller]")]
+public class AdminSellerRequestsController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
 
-    public AdminSellerProfileRequestsController(ApplicationDbContext dbContext)
+    public AdminSellerRequestsController(ApplicationDbContext dbContext)
     {
         _dbContext = dbContext;
     }

@@ -28,7 +28,7 @@ public class UserMiddleware
                 user = new User
                 {
                     Id = userId, 
-                    DisplayName = context.User.Identity.Name ?? "Anonymous", 
+                    DisplayName = context.User.Claims.FirstOrDefault(x=>x.Type==ClaimTypes.Name)?.Value ?? "Anonymous", 
                     Biography = string.Empty,
                     Email = context.User.Claims.FirstOrDefault(x=>x.Type==ClaimTypes.Email)?.Value ?? string.Empty,
                 };
@@ -36,10 +36,10 @@ public class UserMiddleware
                 await dbContext.SaveChangesAsync();
             }
             else
-            {
+            {   
                 user.Email= context.User.Claims.FirstOrDefault(x=>x.Type==ClaimTypes.Email)?.Value ?? string.Empty;
                 dbContext.Users.Update(user);
-                await dbContext.SaveChangesAsync();
+                        await dbContext.SaveChangesAsync();
             }
         }
 

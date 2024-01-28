@@ -1,0 +1,11 @@
+const namespace = 'http://schemas.microsoft.com/ws/2008/06/identity/claims';
+exports.onExecutePostLogin = async (event, api) => {{
+    api.accessToken.setCustomClaim(namespace+'/emailaddress', event.user.email);
+    api.accessToken.setCustomClaim(namespace+'/name', event.user.nickname);
+    var assignedRoles = event.authorization?.roles;
+    if(assignedRoles!=null && assignedRoles.length>0){
+        for(var role in assignedRoles){
+            api.accessToken.setCustomClaim(namespace+'role', assignedRoles[role]);
+        }
+    }
+}}

@@ -24,7 +24,7 @@ public class SellerOrderController : Controller
     }
 
     [HttpGet]
-    [Route("Orders")]
+    [Route("/SellerOrders")]
     [Authorize("read:seller-orders")]
     public async Task<IActionResult> GetOrders(int offset = 0, int pageSize = 10, EnumOrderStatus? status = null)
     {
@@ -36,10 +36,22 @@ public class SellerOrderController : Controller
         var result = orders.Select(x => x.ToModel()).ToList();
         return Ok(result);
     }
+    [HttpGet]
+    [Route("/SellerOrders/{orderId:int}")]
+    [Authorize("read:seller-orders")]
+    public async Task<IActionResult> GetOrder(int orderId, int offset = 0, int pageSize = 10, EnumOrderStatus? status = null)
+    {
+        var userId = User.GetUserId();
+        var order = await _dbContext.SellerServiceOrders
+            .Include(x => x.Seller)
+            .FirstAsync(x => x.Id==orderId && x.Seller.UserId == userId && status == null ? true : status == x.Status);
+        var result = order.ToModel();
+        return Ok(result);
+    }
     
     [HttpDelete]
     [Authorize("write:seller-orders")]
-    [Route("Orders/{orderId:int}/Cancel")]
+    [Route("/api/SellerOrders/{orderId:int}/Cancel")]
     public async Task<IActionResult> CancelOrder(int orderId)
     {
         var userId = User.GetUserId();
@@ -64,7 +76,7 @@ public class SellerOrderController : Controller
     
     [HttpPut]
     [Authorize("write:seller-orders")]
-    [Route("Orders/{orderId:int}/Accept")]
+    [Route("/api/SellerOrders/{orderId:int}/Accept")]
     public async Task<IActionResult> AcceptOrder(int orderId)
     {
         var userId = User.GetUserId();
@@ -88,7 +100,7 @@ public class SellerOrderController : Controller
     
     [HttpPut]
     [Authorize("write:seller-orders")]
-    [Route("Orders/{orderId:int}/Start")]
+    [Route("/api/SellerOrders/{orderId:int}/Start")]
     public async Task<IActionResult> StartOrder(int orderId)
     {
         var userId = User.GetUserId();
@@ -112,7 +124,7 @@ public class SellerOrderController : Controller
     
     [HttpPut]
     [Authorize("write:seller-orders")]
-    [Route("Orders/{orderId:int}/AdjustPrice")]
+    [Route("/api/SellerOrders/{orderId:int}/AdjustPrice")]
     public async Task<IActionResult> AdjustPrice(int orderId,[FromQuery]double price)
     {
         var userId = User.GetUserId();
@@ -139,7 +151,7 @@ public class SellerOrderController : Controller
     
     [HttpPut]
     [Authorize("write:seller-orders")]
-    [Route("Orders/{orderId:int}/CompleteRevision")]
+    [Route("/api/SellerOrders/{orderId:int}/CompleteRevision")]
     public async Task<IActionResult> CompleteRevision(int orderId)
     {
         var userId = User.GetUserId();
@@ -166,7 +178,7 @@ public class SellerOrderController : Controller
     
     [HttpGet]
     [Authorize("read:orders")]
-    [Route("Orders/{orderId:int}/Messages")]
+    [Route("/api/SellerOrders/{orderId:int}/Messages")]
     public async Task<IActionResult> GetMessages(int orderId, int offset = 0, int pageSize = 10)
     {
         var userId = User.GetUserId();
@@ -188,7 +200,7 @@ public class SellerOrderController : Controller
     }
     [HttpPost]
     [Authorize("write:orders")]
-    [Route("Orders/{orderId:int}/Message")]
+    [Route("/api/SellerOrders/{orderId:int}/Message")]
     public async Task<IActionResult> Message(int orderId, [FromBody] SellerServiceOrderMessageModel model)
     {
         var userId = User.GetUserId();
@@ -220,7 +232,7 @@ public class SellerOrderController : Controller
     
     [HttpPost]
     [Authorize("write:orders")]
-    [Route("Orders/{orderId:int}/Message/{messageId:int}/Attachment")]
+    [Route("/api/SellerOrders/{orderId:int}/Message/{messageId:int}/Attachment")]
     public async Task<IActionResult> MessageAttachment(int orderId, int messageId,IFormFile file)
     {
         var userId = User.GetUserId();
@@ -254,7 +266,7 @@ public class SellerOrderController : Controller
     }
     [HttpGet]
     [Authorize("read:orders")]
-    [Route("Orders/{orderId:int}/Message/{messageId:int}/Attachment")]
+    [Route("/api/SellerOrders/{orderId:int}/Message/{messageId:int}/Attachment")]
     public async Task<IActionResult> MessageAttachments(int orderId, int messageId)
     {
         var userId = User.GetUserId();
