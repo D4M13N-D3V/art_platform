@@ -8,6 +8,7 @@ using ArtPlatform.Database;
 using Auth0.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -18,7 +19,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<IStorageService,ImgCdnStorageServiceProvider>();
 builder.Services.AddSingleton<IPaymentService,StripePaymentServiceProvider>();
-
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
@@ -87,18 +87,21 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
         );
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
     options.Authority = $"{builder.Configuration.GetValue<string>("Auth0:Domain")}";
     options.Audience = $"{builder.Configuration.GetValue<string>("Auth0:Audience")}";
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        NameClaimType = ClaimTypes.NameIdentifier,
+        RoleClaimType = ClaimTypes.Role
+    };
 });
 
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy("admin", policy => policy.RequireClaim(ClaimTypes.Role, "Admin"));
+    
     options.AddPolicy("read:user", policy => policy.Requirements.Add(new 
         HasScopeRequirement("read:user", builder.Configuration.GetValue<string>("Auth0:Domain"))));
     options.AddPolicy("write:user", policy => policy.Requirements.Add(new 
@@ -139,6 +142,7 @@ builder.Services.AddSingleton<IAuthorizationHandler, HasScopeHandler>();
 
 
 var app = builder.Build();
+
 app.UseSwagger();
 app.UseSwaggerUI(settings =>
 {
@@ -147,9 +151,13 @@ app.UseSwaggerUI(settings =>
         settings.OAuthClientId(builder.Configuration.GetValue<string>("Auth0:ClientId"));
         settings.OAuthClientSecret(builder.Configuration.GetValue<string>("Auth0:ClientSecret"));
         settings.OAuthUsePkce();
-    }   
+    }
 });
+var defaultFilesOptions = new DefaultFilesOptions();
+defaultFilesOptions.DefaultFileNames.Clear();
+defaultFilesOptions.DefaultFileNames.Add("index.html"); // replace 'yourf
 app.UseStaticFiles();
+
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseMiddleware<UserMiddleware>();

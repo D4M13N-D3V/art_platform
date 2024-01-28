@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ArtPlatform.API.Controllers;
 
 [ApiController]
+[Authorize("admin")]
 [Route("api/[controller]")]
 public class AdminSellerProfileRequestsController : Controller
 {

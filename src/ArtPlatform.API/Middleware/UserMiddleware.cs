@@ -30,9 +30,15 @@ public class UserMiddleware
                     Id = userId, 
                     DisplayName = context.User.Identity.Name ?? "Anonymous", 
                     Biography = string.Empty,
-                    Email = context.User.Claims.FirstOrDefault(x=>x.Type=="email")?.Value ?? string.Empty,
+                    Email = context.User.Claims.FirstOrDefault(x=>x.Type==ClaimTypes.Email)?.Value ?? string.Empty,
                 };
                 dbContext.Users.Add(user);
+                await dbContext.SaveChangesAsync();
+            }
+            else
+            {
+                user.Email= context.User.Claims.FirstOrDefault(x=>x.Type==ClaimTypes.Email)?.Value ?? string.Empty;
+                dbContext.Users.Update(user);
                 await dbContext.SaveChangesAsync();
             }
         }

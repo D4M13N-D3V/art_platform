@@ -22,10 +22,19 @@
       <Content Include="..\.dockerignore">
         <Link>.dockerignore</Link>
       </Content>
+      <None Remove="react\public\favicon.ico" />
+      <None Remove="react\public\index.html" />
+      <None Remove="react\public\logo192.png" />
+      <None Remove="react\public\logo512.png" />
+      <None Remove="react\public\robots.txt" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\ArtPlatform.Database\ArtPlatform.Database.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="react\" />
     </ItemGroup>
 
 </Project>
