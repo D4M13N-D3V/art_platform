@@ -1,4 +1,4 @@
-using ArtPlatform.Database.Entities;
+ using ArtPlatform.Database.Entities;
 
 namespace ArtPlatform.API.Models.Order;
 
@@ -14,7 +14,8 @@ public static class OrderModelExtensions
             SellerServiceId = sellerProfile.SellerServiceId,
             SellerId = sellerProfile.SellerId,
             Status = sellerProfile.Status,
-            Price = sellerProfile.Price
+            Price = sellerProfile.Price,
+            PaymentUrl = sellerProfile.PaymentUrl
         };
     }
 }

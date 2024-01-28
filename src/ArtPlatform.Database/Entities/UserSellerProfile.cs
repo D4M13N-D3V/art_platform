@@ -10,7 +10,8 @@ public record UserSellerProfile
     public string Biography { get; set; }
     public List<string> SocialMediaLinks { get; set; } = new();
     public bool AgeRestricted { get; set; }
-    public string? StripeAccountId { get; set; } 
+    public string? StripeAccountId { get; set; }
+    public bool PrepaymentRequired { get; set; } = false;
     public virtual User User { get; set; } = null!;
 
     public virtual ICollection<SellerService> SellerServices { get; set; } = new List<SellerService>();

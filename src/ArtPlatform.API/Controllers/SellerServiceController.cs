@@ -1,6 +1,7 @@
 using ArtPlatform.API.Extensions;
 using ArtPlatform.API.Models.PortfolioModel;
 using ArtPlatform.API.Models.SellerService;
+using ArtPlatform.API.Services.Payment;
 using ArtPlatform.API.Services.Storage;
 using ArtPlatform.Database;
 using ArtPlatform.Database.Entities;
@@ -16,9 +17,11 @@ public class SellerServiceController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IStorageService _storageService;
-
-    public SellerServiceController(ApplicationDbContext dbContext, IStorageService storageService)
+    private readonly IPaymentService _paymentService;
+    
+    public SellerServiceController(ApplicationDbContext dbContext, IPaymentService paymentService, IStorageService storageService)
     {
+        _paymentService = paymentService;
         _storageService = storageService;
         _dbContext = dbContext;
     }
@@ -65,6 +68,12 @@ public class SellerServiceController : Controller
         if(seller==null)
             return BadRequest("Account is not a seller.");
 
+        if(seller.StripeAccountId==null)
+            return BadRequest("Account does not have a payment account.");
+
+        if (_paymentService.SellerAccountIsOnboarded(seller.StripeAccountId) == false)
+            return BadRequest("Account has not finished onboarding.");
+        
         var sellerService = new Database.Entities.SellerService()
         {
             Name = model.Name,

@@ -12,4 +12,5 @@ public class OrderModel
 
     public string StatusLabel => Status.ToString();
     public double Price { get; set; }
+    public string? PaymentUrl { get; set; }
 }

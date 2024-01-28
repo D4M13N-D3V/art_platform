@@ -1,5 +1,6 @@
 using ArtPlatform.API.Extensions;
 using ArtPlatform.API.Models.Order;
+using ArtPlatform.API.Services.Payment;
 using ArtPlatform.API.Services.Storage;
 using ArtPlatform.Database;
 using ArtPlatform.Database.Entities;
@@ -7,6 +8,8 @@ using ArtPlatform.Database.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
+using Stripe.Checkout;
 
 namespace ArtPlatform.API.Controllers;
 
@@ -16,13 +19,54 @@ public class OrderController : Controller
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IStorageService _storageService;
- 
-    public OrderController(ApplicationDbContext dbContext, IStorageService storageService)
+    private readonly IPaymentService _paymentService;
+    private readonly IConfiguration _configuration;
+    private readonly string _webHookSecret;
+    
+    public OrderController(ApplicationDbContext dbContext, IConfiguration configuration, IStorageService storageService, IPaymentService paymentService)
     {
+        _configuration = configuration;
+        _paymentService = paymentService;
         _storageService = storageService;
         _dbContext = dbContext;
+        _webHookSecret = _configuration.GetValue<string>("Stripe:WebHookSecret");
     }
 
+    [HttpPost("PaymentWebhook")]
+    public async Task<IActionResult> ProcessWebhookEvent()
+    {
+        var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+
+        // If you are testing your webhook locally with the Stripe CLI you
+        // can find the endpoint's secret by running `stripe listen`
+        // Otherwise, find your endpoint's secret in your webhook settings
+        // in the Developer Dashboard
+        var stripeEvent = EventUtility.ConstructEvent(json, Request.Headers["Stripe-Signature"], _webHookSecret);
+
+        if (stripeEvent.Type == Events.CheckoutSessionAsyncPaymentSucceeded)
+        {
+            var session = stripeEvent.Data.Object as Session;
+            var connectedAccountId = stripeEvent.Account;
+        }
+        else if (stripeEvent.Type == Events.CheckoutSessionAsyncPaymentFailed)
+        {
+            var session = stripeEvent.Data.Object as Session;
+            var connectedAccountId = stripeEvent.Account;
+        }
+        else if (stripeEvent.Type == Events.CheckoutSessionCompleted)
+        {
+        }
+        else if (stripeEvent.Type == Events.CheckoutSessionExpired)
+        {
+        }
+        // ... handle other event types
+        else
+        {
+            Console.WriteLine("Unhandled event type: {0}", stripeEvent.Type);
+        }
+        return Ok();
+    }
+    
     [HttpGet]
     [Route("Orders")]
     [Authorize("read:orders")]
@@ -104,6 +148,7 @@ public class OrderController : Controller
         var userId = User.GetUserId();
         var order = await _dbContext.SellerServiceOrders
             .Include(x=>x.SellerService)
+            .Include(x=>x.Buyer)
             .Include(x=>x.Seller)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.BuyerId==userId);
         if(order==null)
@@ -114,8 +159,61 @@ public class OrderController : Controller
             return BadRequest("Order is already complete.");
         if(order.Status<EnumOrderStatus.DiscussingRequirements)
             return BadRequest("Order has not been started yet.");
-        order.Status = EnumOrderStatus.InProgress;
+
+        if(string.IsNullOrEmpty(order.PaymentUrl)==false)
+            return BadRequest("Order has price already been agreed on.");
+        
         order.TermsAcceptedDate = DateTime.UtcNow;
+
+        if (order.Seller.PrepaymentRequired)
+        {
+            order.Status = EnumOrderStatus.WaitingForPayment;
+            var url = _paymentService.ChargeForService(order.SellerServiceId, order.Buyer.StripeCustomerId, order.Seller.StripeAccountId, order.Price);
+            order.PaymentUrl = url;
+        }
+        else
+        {
+            order.Status = EnumOrderStatus.InProgress;
+        }
+        
+        order = _dbContext.SellerServiceOrders.Update(order).Entity;
+        
+        await _dbContext.SaveChangesAsync();
+        var result = order.ToModel();
+        return Ok(result);
+    }
+    [HttpPut]
+    [Authorize("write:orders")]
+    [Route("Orders/{orderId:int}/Payment")]
+    public async Task<IActionResult> Payment(int orderId)
+    {
+        var userId = User.GetUserId();
+        var order = await _dbContext.SellerServiceOrders
+            .Include(x=>x.SellerService)
+            .Include(x=>x.Buyer)
+            .Include(x=>x.Seller)
+            .FirstOrDefaultAsync(x=>x.Id==orderId && x.BuyerId==userId);
+        if(order==null)
+            return NotFound("Order not found.");
+        if(order.Seller.UserId!=userId)
+            return BadRequest("You are not the seller of this order.");
+        if(order.Status==EnumOrderStatus.Completed)
+            return BadRequest("Order is already complete.");
+        if(order.Status!=EnumOrderStatus.WaitingForPayment)
+            return BadRequest("Order does not need to be paid for.");
+        order.TermsAcceptedDate = DateTime.UtcNow;
+        if (order.Seller.PrepaymentRequired)
+        {
+            order.Status = EnumOrderStatus.InProgress;
+            var url = _paymentService.ChargeForService(order.SellerServiceId, order.Buyer.StripeCustomerId, order.Seller.StripeAccountId, order.Price);
+            order.PaymentUrl = url;
+        }
+        else
+        {
+            order.Status = EnumOrderStatus.Completed;
+            var url = _paymentService.ChargeForService(order.SellerServiceId, order.Buyer.StripeCustomerId, order.Seller.StripeAccountId, order.Price);
+            order.PaymentUrl = url;
+        }
         order = _dbContext.SellerServiceOrders.Update(order).Entity;
         await _dbContext.SaveChangesAsync();
         var result = order.ToModel();
@@ -142,7 +240,16 @@ public class OrderController : Controller
             return BadRequest("Order has not been started yet.");
         if(order.Status<EnumOrderStatus.PendingReview)
             return BadRequest("Order is in progress and not pending review.");
-        order.Status = EnumOrderStatus.Completed;
+        
+        if(order.Seller.PrepaymentRequired)
+            order.Status = EnumOrderStatus.Completed;
+        else
+        {
+            order.Status = EnumOrderStatus.WaitingForPayment;
+            var url = _paymentService.ChargeForService(order.SellerServiceId, order.Buyer.StripeCustomerId, order.Seller.StripeAccountId, order.Price);
+            order.PaymentUrl = url;
+        }
+        
         order.TermsAcceptedDate = DateTime.UtcNow;
         order = _dbContext.SellerServiceOrders.Update(order).Entity;
         await _dbContext.SaveChangesAsync();

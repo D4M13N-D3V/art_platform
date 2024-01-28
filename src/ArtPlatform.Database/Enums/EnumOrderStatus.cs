@@ -8,5 +8,6 @@ public enum EnumOrderStatus
     InProgress,
     PendingReview,
     Completed,
-    Cancelled
+    Cancelled,
+    WaitingForPayment
 }

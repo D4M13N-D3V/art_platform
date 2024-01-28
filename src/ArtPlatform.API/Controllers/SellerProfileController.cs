@@ -196,8 +196,10 @@ public class SellerProfileController : Controller
                 return BadRequest("Account has requested to be a seller and not been approved yet.");
             return Unauthorized("Account is not a seller.");
         }
+        
         if(existingSellerProfile.StripeAccountId!=null)
-            return BadRequest("Account already has a payment account.");
+            return BadRequest("Account already have a payment account.");
+
         var accountId = _paymentService.CreateSellerAccount();
         existingSellerProfile.StripeAccountId = accountId;
         existingSellerProfile = _dbContext.UserSellerProfiles.Update(existingSellerProfile).Entity;
@@ -223,10 +225,8 @@ public class SellerProfileController : Controller
         if(existingSellerProfile.StripeAccountId==null)
             return BadRequest("Account does not have a payment account.");
 
-        if (_paymentService.SellerAccountIsOnboarded(existingSellerProfile.StripeAccountId) == false)
-            return BadRequest("Account has not finished onboarding.");
-        
         var result = _paymentService.CreateSellerAccountOnboardingUrl(existingSellerProfile.StripeAccountId);
         return Ok(result);
     }
+    
 }

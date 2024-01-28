@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ArtPlatform.API.Services.Payment;
 using ArtPlatform.Database;
 using ArtPlatform.Database.Entities;
 
@@ -14,7 +15,7 @@ public class UserMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, ApplicationDbContext dbContext)
+    public async Task InvokeAsync(HttpContext context, ApplicationDbContext dbContext, IPaymentService paymentService)
     {
         if (context.User.Identity.IsAuthenticated)
         {
@@ -24,20 +25,14 @@ public class UserMiddleware
 
             if (user == null)
             {
+                var customer = paymentService.CreateCustomer();
                 user = new User
                 {
                     Id = userId, 
                     DisplayName = context.User.Identity.Name ?? "Anonymous", 
                     Biography = string.Empty,
                     Email = context.User.Claims.FirstOrDefault(x=>x.Type=="email")?.Value ?? string.Empty,
-                    FirstName = string.Empty,
-                    LastName = string.Empty,
-                    AddressCountry = string.Empty,
-                    AddressCity = string.Empty,
-                    AddressStreet = string.Empty,
-                    AddressHouseNumber = string.Empty,
-                    AddressPostalCode = string.Empty,
-                    AddressRegion = string.Empty
+                    StripeCustomerId = customer
                 };
                 dbContext.Users.Add(user);
                 await dbContext.SaveChangesAsync();
