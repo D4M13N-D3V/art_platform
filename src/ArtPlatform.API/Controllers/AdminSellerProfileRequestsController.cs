@@ -19,6 +19,12 @@ public class AdminSellerProfileRequestsController : Controller
         _dbContext = dbContext;
     }
     
+    /// <summary>
+    /// Gets a list of all of the requests from users to become a seller.
+    /// </summary>
+    /// <param name="offset"> The offset to start at.</param>
+    /// <param name="pageSize"> The amount of records to return.</param>
+    /// <returns>A list of seller profile requests</returns>
     [HttpGet]
     [Authorize("read:seller-profile-request")]
     [Route("SellerRequests")]
@@ -29,6 +35,10 @@ public class AdminSellerProfileRequestsController : Controller
         return Ok(result);
     }
     
+    /// <summary>
+    /// Gets the amount of requests there are from users to become a seller.
+    /// </summary>
+    /// <returns>The number of requests.</returns>
     [HttpGet]
     [Authorize("read:seller-profile-request")]
     [Route("SellerRequests/Count")]
@@ -38,6 +48,11 @@ public class AdminSellerProfileRequestsController : Controller
         return Ok(result);
     }
     
+    /// <summary>
+    /// Accepts a request to become a seller from a user.
+    /// </summary>
+    /// <param name="userId">The ID of the user to accept the request for.</param>
+    /// <returns>The new seller profile.</returns>
     [HttpPut]
     [Authorize("write:seller-profile-request")]
     [Route("SellerRequests/{userId}")]

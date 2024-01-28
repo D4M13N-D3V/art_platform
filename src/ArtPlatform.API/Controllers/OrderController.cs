@@ -53,7 +53,7 @@ public class OrderController : Controller
                 .FirstOrDefaultAsync(x=>x.Id==int.Parse(orderId));
             if (order != null && order.Status == EnumOrderStatus.WaitingForPayment)
             {
-                order.PaymentUrl = _paymentService.ChargeForService(order.Id, order.Seller.StripeAccountId, order.Price);
+                order.PaymentUrl = null;
             }
         }
         else if (stripeEvent.Type == Events.CheckoutSessionCompleted)
@@ -213,23 +213,13 @@ public class OrderController : Controller
             return BadRequest("Order is already complete.");
         if(order.Status!=EnumOrderStatus.WaitingForPayment)
             return BadRequest("Order does not need to be paid for.");
-        order.TermsAcceptedDate = DateTime.UtcNow;
-        if (order.Seller.PrepaymentRequired)
-        {
-            order.Status = EnumOrderStatus.InProgress;
-            var url = _paymentService.ChargeForService(order.Id, order.Seller.StripeAccountId, order.Price);
-            order.PaymentUrl = url;
-        }
-        else
-        {
-            order.Status = EnumOrderStatus.Completed;
-            var url = _paymentService.ChargeForService(order.Id, order.Seller.StripeAccountId, order.Price);
-            order.PaymentUrl = url;
-        }
+        if(order.PaymentUrl!=null)
+            return BadRequest("Order has already has a payment url.");
+        var url = _paymentService.ChargeForService(order.Id, order.Seller.StripeAccountId, order.Price);
+        order.PaymentUrl = url;
         order = _dbContext.SellerServiceOrders.Update(order).Entity;
         await _dbContext.SaveChangesAsync();
-        var result = order.ToModel();
-        return Ok(result);
+        return Ok(order.PaymentUrl);
     }
     
     [HttpPut]
