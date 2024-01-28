@@ -8,5 +8,5 @@ public interface IPaymentService
     string CreateSellerAccount();
     string CreateSellerAccountOnboardingUrl(string accountId); 
     bool SellerAccountIsOnboarded(string accountId);
-    string ChargeForService(int orderSellerServiceId, string buyerStripeCustomerId, string? sellerStripeAccountId, double orderPrice);
+    string ChargeForService(int orderSellerServiceId, string? sellerStripeAccountId, double orderPrice);
 }

@@ -11,7 +11,6 @@ public record User
     public string Biography { get; set; } = null!;
     public string Email { get; set; } = null!;
     public int? UserSellerProfileId { get; set; }
-    public string StripeCustomerId { get; set; } = null!;
     
     [JsonIgnore] public virtual UserSellerProfile? UserSellerProfile { get; set; }
     [JsonIgnore] public virtual ICollection<SellerServiceOrder> Orders { get; set; }

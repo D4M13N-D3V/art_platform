@@ -22,7 +22,7 @@ builder.Services.AddSingleton<IPaymentService,StripePaymentServiceProvider>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSingleton<ApplicationDbContext>();
+builder.Services.AddDbContext<ApplicationDbContext>();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo

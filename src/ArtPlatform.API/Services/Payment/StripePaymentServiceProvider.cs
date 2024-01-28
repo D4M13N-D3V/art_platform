@@ -86,7 +86,7 @@ public class StripePaymentServiceProvider:IPaymentService
         return account.Requirements.CurrentlyDue.Count == 0 && account.ChargesEnabled==true && account.DetailsSubmitted==true;
     }
 
-    public string ChargeForService(int orderSellerServiceId, string buyerStripeCustomerId, string? sellerStripeAccountId,
+    public string ChargeForService(int orderSellerServiceOrderId, string? sellerStripeAccountId,
         double orderPrice)
     {
         var feeAmount = (long)Math.Round((orderPrice*0.05) * 100);
@@ -101,7 +101,7 @@ public class StripePaymentServiceProvider:IPaymentService
                             Currency = "usd",
                             ProductData = new Stripe.Checkout.SessionLineItemPriceDataProductDataOptions
                             {
-                                Name = orderSellerServiceId.ToString()
+                                Name = "Comission Service",
                             },
                         },
                         Quantity = 1,
@@ -114,6 +114,10 @@ public class StripePaymentServiceProvider:IPaymentService
             Mode = "payment",
             SuccessUrl = "https://example.com/success",
             CancelUrl = "https://example.com/failure",
+            Metadata = new Dictionary<string, string>()
+            {
+                ["orderId"] = orderSellerServiceOrderId.ToString()
+            }
         };
         var requestOptions = new RequestOptions
         {

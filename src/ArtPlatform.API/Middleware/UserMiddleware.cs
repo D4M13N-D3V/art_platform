@@ -25,14 +25,12 @@ public class UserMiddleware
 
             if (user == null)
             {
-                var customer = paymentService.CreateCustomer();
                 user = new User
                 {
                     Id = userId, 
                     DisplayName = context.User.Identity.Name ?? "Anonymous", 
                     Biography = string.Empty,
                     Email = context.User.Claims.FirstOrDefault(x=>x.Type=="email")?.Value ?? string.Empty,
-                    StripeCustomerId = customer
                 };
                 dbContext.Users.Add(user);
                 await dbContext.SaveChangesAsync();

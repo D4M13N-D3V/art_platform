@@ -20,16 +20,14 @@ public class OrderController : Controller
     private readonly ApplicationDbContext _dbContext;
     private readonly IStorageService _storageService;
     private readonly IPaymentService _paymentService;
-    private readonly IConfiguration _configuration;
     private readonly string _webHookSecret;
     
     public OrderController(ApplicationDbContext dbContext, IConfiguration configuration, IStorageService storageService, IPaymentService paymentService)
     {
-        _configuration = configuration;
         _paymentService = paymentService;
         _storageService = storageService;
         _dbContext = dbContext;
-        _webHookSecret = _configuration.GetValue<string>("Stripe:WebHookSecret");
+        _webHookSecret = configuration.GetValue<string>("Stripe:WebHookSecret");
     }
 
     [HttpPost("PaymentWebhook")]
@@ -43,30 +41,37 @@ public class OrderController : Controller
         // in the Developer Dashboard
         var stripeEvent = EventUtility.ConstructEvent(json, Request.Headers["Stripe-Signature"], _webHookSecret);
 
-        if (stripeEvent.Type == Events.CheckoutSessionAsyncPaymentSucceeded)
+        if (stripeEvent.Type == Events.CheckoutSessionExpired)
         {
             var session = stripeEvent.Data.Object as Session;
             var connectedAccountId = stripeEvent.Account;
-        }
-        else if (stripeEvent.Type == Events.CheckoutSessionAsyncPaymentFailed)
-        {
-            var session = stripeEvent.Data.Object as Session;
-            var connectedAccountId = stripeEvent.Account;
+            var orderId = session.LineItems.First().Price.Product.Name;
+            var order = await _dbContext.SellerServiceOrders
+                .Include(x=>x.Seller)
+                .Include(x=>x.Buyer)
+                .Include(x=>x.SellerService)
+                .FirstOrDefaultAsync(x=>x.Id==int.Parse(orderId));
+            if (order != null && order.Status == EnumOrderStatus.WaitingForPayment)
+            {
+                order.PaymentUrl = _paymentService.ChargeForService(order.Id, order.Seller.StripeAccountId, order.Price);
+            }
         }
         else if (stripeEvent.Type == Events.CheckoutSessionCompleted)
         {
             var session = stripeEvent.Data.Object as Session;
             var connectedAccountId = stripeEvent.Account;
-        }
-        else if (stripeEvent.Type == Events.CheckoutSessionExpired)
-        {
-            var session = stripeEvent.Data.Object as Session;
-            var connectedAccountId = stripeEvent.Account;
-        }
-        // ... handle other event types
-        else
-        {
-            Console.WriteLine("Unhandled event type: {0}", stripeEvent.Type);
+            var orderId = session.Metadata["orderId"];
+            var order = await _dbContext.SellerServiceOrders
+                .Include(x=>x.Seller)
+                .Include(x=>x.SellerService)
+                .FirstOrDefaultAsync(x=>x.Id==int.Parse(orderId));
+            if (order != null && order.Seller.StripeAccountId==connectedAccountId && order.Status == EnumOrderStatus.WaitingForPayment)
+            {
+                if (order.Seller.PrepaymentRequired)
+                    order.Status = EnumOrderStatus.InProgress;
+                else
+                    order.Status = EnumOrderStatus.Completed;
+            }
         }
         return Ok();
     }
@@ -175,7 +180,7 @@ public class OrderController : Controller
         if (order.Seller.PrepaymentRequired)
         {
             order.Status = EnumOrderStatus.WaitingForPayment;
-            var url = _paymentService.ChargeForService(order.SellerServiceId, order.Buyer.StripeCustomerId, order.Seller.StripeAccountId, order.Price);
+            var url = _paymentService.ChargeForService(order.Id, order.Seller.StripeAccountId, order.Price);
             order.PaymentUrl = url;
         }
         else
@@ -212,13 +217,13 @@ public class OrderController : Controller
         if (order.Seller.PrepaymentRequired)
         {
             order.Status = EnumOrderStatus.InProgress;
-            var url = _paymentService.ChargeForService(order.SellerServiceId, order.Buyer.StripeCustomerId, order.Seller.StripeAccountId, order.Price);
+            var url = _paymentService.ChargeForService(order.Id, order.Seller.StripeAccountId, order.Price);
             order.PaymentUrl = url;
         }
         else
         {
             order.Status = EnumOrderStatus.Completed;
-            var url = _paymentService.ChargeForService(order.SellerServiceId, order.Buyer.StripeCustomerId, order.Seller.StripeAccountId, order.Price);
+            var url = _paymentService.ChargeForService(order.Id, order.Seller.StripeAccountId, order.Price);
             order.PaymentUrl = url;
         }
         order = _dbContext.SellerServiceOrders.Update(order).Entity;
@@ -255,7 +260,7 @@ public class OrderController : Controller
         else
         {
             order.Status = EnumOrderStatus.WaitingForPayment;
-            var url = _paymentService.ChargeForService(order.SellerServiceId, order.Buyer.StripeCustomerId, order.Seller.StripeAccountId, order.Price);
+            var url = _paymentService.ChargeForService(order.Id, order.Seller.StripeAccountId, order.Price);
             order.PaymentUrl = url;
         }
         
