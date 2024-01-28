@@ -55,9 +55,13 @@ public class OrderController : Controller
         }
         else if (stripeEvent.Type == Events.CheckoutSessionCompleted)
         {
+            var session = stripeEvent.Data.Object as Session;
+            var connectedAccountId = stripeEvent.Account;
         }
         else if (stripeEvent.Type == Events.CheckoutSessionExpired)
         {
+            var session = stripeEvent.Data.Object as Session;
+            var connectedAccountId = stripeEvent.Account;
         }
         // ... handle other event types
         else
@@ -163,6 +167,9 @@ public class OrderController : Controller
         if(string.IsNullOrEmpty(order.PaymentUrl)==false)
             return BadRequest("Order has price already been agreed on.");
         
+        if(order.Status==EnumOrderStatus.WaitingForPayment)
+            return BadRequest("Order is waiting for payment.");
+        
         order.TermsAcceptedDate = DateTime.UtcNow;
 
         if (order.Seller.PrepaymentRequired)
@@ -240,6 +247,8 @@ public class OrderController : Controller
             return BadRequest("Order has not been started yet.");
         if(order.Status<EnumOrderStatus.PendingReview)
             return BadRequest("Order is in progress and not pending review.");
+        if(order.Status==EnumOrderStatus.WaitingForPayment)
+            return BadRequest("Order is waiting for payment.");
         
         if(order.Seller.PrepaymentRequired)
             order.Status = EnumOrderStatus.Completed;
