@@ -36,7 +36,7 @@ public class SellerServiceController : Controller
         if(seller==null)
             return BadRequest("Account is not a seller.");
 
-        var sellerServices = await _dbContext.SellerServices.Include(x=>x.Reviews)
+        var sellerServices = await _dbContext.SellerServices.Where(x=>x.Archived==false).Include(x=>x.Reviews)
             .Skip(offset).Take(pageSize).ToListAsync();
         var result = sellerServices.Select(x=>x.ToModel()).ToList();
         return Ok(result);
@@ -53,7 +53,7 @@ public class SellerServiceController : Controller
         if(seller==null)
             return BadRequest("Account is not a seller.");
 
-        var sellerServices = await _dbContext.SellerServices.Include(x => x.Reviews).ToListAsync();
+        var sellerServices = await _dbContext.SellerServices.Where(x=>x.Archived==false).Include(x => x.Reviews).ToListAsync();
         var result = sellerServices.Count;
         return Ok(result);
     }
@@ -129,7 +129,8 @@ public class SellerServiceController : Controller
         if(sellerService==null)
             return NotFound("Seller service not found.");
 
-        _dbContext.SellerServices.Remove(sellerService);
+        sellerService.Archived = true;
+        _dbContext.SellerServices.Update(sellerService);
         await _dbContext.SaveChangesAsync();
         return Ok();
     }   

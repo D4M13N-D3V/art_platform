@@ -53,7 +53,7 @@ public class DiscoveryController : Controller
             return NotFound("Seller not found.");
         var sellerServices = await _dbContext.SellerServices
             .Include(x=>x.Reviews)
-            .Where(x=>x.SellerProfileId==sellerId)
+            .Where(x=>x.SellerProfileId==sellerId && !x.Archived)
             .Skip(offset).Take(pageSize).ToListAsync();
         var result = sellerServices.Select(x=>x.ToModel()).ToList();
         return Ok(result);
@@ -70,7 +70,7 @@ public class DiscoveryController : Controller
             return NotFound("Seller not found.");
         var sellerServices = await _dbContext.SellerServices
             .Include(x=>x.Reviews)
-            .Where(x=>x.SellerProfileId==sellerId)
+            .Where(x=>x.SellerProfileId==sellerId && !x.Archived)
             .ToListAsync();
         var result = sellerServices.Count;
         return Ok(result);

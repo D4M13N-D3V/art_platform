@@ -117,6 +117,9 @@ public class OrderController : Controller
         if(service==null)
             return NotFound("Service not found.");
         
+        if(service.Archived)
+            return BadRequest("Service is archived.");
+        
         if(_dbContext.SellerServiceOrders.Where(x=>x.BuyerId==userId && x.Status!=EnumOrderStatus.Completed && x.Status!=EnumOrderStatus.Cancelled).Count()>=3)
             return BadRequest("You already have an order in progress. There is a limit of three at a time.");
         
