@@ -2,6 +2,7 @@ using System.Security.Claims;
 using ArtPlatform.API.Services.Payment;
 using ArtPlatform.Database;
 using ArtPlatform.Database.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArtPlatform.API.Middleware;
 
@@ -21,7 +22,7 @@ public class UserMiddleware
         {
             var userId = context.User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
 
-            var user = await dbContext.Users.FindAsync(userId);
+            var user = await dbContext.Users.Include(x=>x.UserSellerProfile).FirstOrDefaultAsync(x=>x.Id==userId);
 
             if (user == null)
             {
@@ -39,7 +40,73 @@ public class UserMiddleware
             {   
                 user.Email= context.User.Claims.FirstOrDefault(x=>x.Type==ClaimTypes.Email)?.Value ?? string.Empty;
                 dbContext.Users.Update(user);
-                        await dbContext.SaveChangesAsync();
+                await dbContext.SaveChangesAsync();
+            }
+
+            if (user.Suspended)
+            {
+                if (user.UnsuspendDate < DateTime.UtcNow)
+                {
+                    user.Suspended = false;
+                    user.SuspendedDate = null;
+                    user.UnsuspendDate = null;
+                    user.SuspendedReason = null;
+                    user.SuspendAdminId = null;
+                    dbContext.Users.Update(user);
+                    await dbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    var suspendDate = user.SuspendedDate.Value.ToString("MM/dd/yyyy");
+                    var unsuspendDate = user.UnsuspendDate.Value.ToString("MM/dd/yyyy");
+                    await context.Response.WriteAsync($"Suspended on {suspendDate} until {unsuspendDate} for {user.SuspendedReason} by {user.SuspendAdminId}.");
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
+                }
+            }
+
+            if (user.Banned)
+            {
+                if (user.UnsuspendDate < DateTime.UtcNow)
+                {
+                    user.Banned = false;
+                    user.BannedDate = null;
+                    user.BannedDate = null;
+                    user.BannedReason = null;
+                    user.BanAdminId = null;
+                    dbContext.Users.Update(user);
+                    await dbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    var suspendDate = user.BannedDate.Value.ToString("MM/dd/yyyy");
+                    var unsuspendDate = user.UnbanDate.Value.ToString("MM/dd/yyyy");
+                    await context.Response.WriteAsync($"Banned on {suspendDate} until {unsuspendDate} for {user.BannedReason} by {user.BanAdminId}.");
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
+                }
+            }
+
+            if (user.UserSellerProfile != null && user.UserSellerProfile.Suspended)
+            {
+                if (user.UserSellerProfile.UnsuspendDate < DateTime.UtcNow)
+                {
+                    user.UserSellerProfile.Suspended = false;
+                    user.UserSellerProfile.SuspendedDate = null;
+                    user.UserSellerProfile.UnsuspendDate = null;
+                    user.UserSellerProfile.SuspendedReason = null;
+                    user.UserSellerProfile.SuspendAdminId = null;
+                    dbContext.Users.Update(user);
+                    await dbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    var suspendDate = user.UserSellerProfile.SuspendedDate.Value.ToString("MM/dd/yyyy");
+                    var unsuspendDate = user.UserSellerProfile.UnsuspendDate.Value.ToString("MM/dd/yyyy");
+                    await context.Response.WriteAsync($"Banned on {suspendDate} until {unsuspendDate} for {user.UserSellerProfile.SuspendedReason} by {user.UserSellerProfile.SuspendAdminId}.");
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
+                }
             }
         }
 

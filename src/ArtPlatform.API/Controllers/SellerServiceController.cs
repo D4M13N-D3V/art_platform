@@ -36,6 +36,9 @@ public class SellerServiceController : Controller
         if(seller==null)
             return BadRequest("Account is not a seller.");
 
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
+        
         var sellerServices = await _dbContext.SellerServices.Where(x=>x.Archived==false).Include(x=>x.Reviews)
             .Skip(offset).Take(pageSize).ToListAsync();
         var result = sellerServices.Select(x=>x.ToModel()).ToList();
@@ -53,6 +56,9 @@ public class SellerServiceController : Controller
         if(seller==null)
             return BadRequest("Account is not a seller.");
 
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
+        
         var sellerServices = await _dbContext.SellerServices.Where(x=>x.Archived==false).Include(x => x.Reviews).ToListAsync();
         var result = sellerServices.Count;
         return Ok(result);
@@ -67,6 +73,9 @@ public class SellerServiceController : Controller
         
         if(seller==null)
             return BadRequest("Account is not a seller.");
+
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
 
         if(seller.StripeAccountId==null)
             return BadRequest("Account does not have a payment account.");
@@ -98,6 +107,9 @@ public class SellerServiceController : Controller
         if(seller==null)
             return BadRequest("Account is not a seller.");
 
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
+
         var sellerService = await _dbContext.SellerServices.FirstOrDefaultAsync(sellerService=>sellerService.Id==sellerServiceId);
         
         if(sellerService==null)
@@ -124,6 +136,9 @@ public class SellerServiceController : Controller
         if(seller==null)
             return BadRequest("Account is not a seller.");
 
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
+
         var sellerService = await _dbContext.SellerServices.FirstOrDefaultAsync(sellerService=>sellerService.Id==sellerServiceId);
         
         if(sellerService==null)
@@ -141,6 +156,8 @@ public class SellerServiceController : Controller
     {
         var userId = User.GetUserId();
         var existingSellerProfile = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(sellerProfile=>sellerProfile.UserId==userId);
+        
+        
         if (existingSellerProfile == null)
         {
             var sellerProfileRequest = await _dbContext.SellerProfileRequests.FirstOrDefaultAsync(request=>request.UserId==userId && request.Accepted==false);
@@ -148,6 +165,8 @@ public class SellerServiceController : Controller
                 return BadRequest("Account has requested to be a seller and not been approved yet.");
             return Unauthorized("Account is not a seller.");
         }
+        if(existingSellerProfile.Suspended)
+            return BadRequest("Seller is suspended.");
         var portfolio = await _dbContext.SellerProfilePortfolioPieces.Where(x=>x.SellerProfileId==existingSellerProfile.Id && x.SellerServiceId==sellerServiceId).ToListAsync();
         var result = portfolio.Select(x=>x.ToModel()).ToList();
         return Ok(result);
@@ -169,6 +188,9 @@ public class SellerServiceController : Controller
             return Unauthorized("Account is not a seller.");
         }
 
+        if(existingSellerProfile.Suspended)
+            return BadRequest("Seller is suspended.");
+        
         var portfolio = await _dbContext.SellerProfilePortfolioPieces
             .FirstAsync(x => x.SellerProfileId == existingSellerProfile.Id
                              && x.SellerServiceId == sellerServiceId && x.Id==portfolioId);
@@ -191,6 +213,9 @@ public class SellerServiceController : Controller
             return Unauthorized("Account is not a seller.");
         }
 
+        if(existingSellerProfile.Suspended)
+            return BadRequest("Seller is suspended.");
+        
         var url = await _storageService.UploadImageAsync(file, Guid.NewGuid().ToString());
         var portfolio = new SellerProfilePortfolioPiece()
         {
@@ -219,6 +244,8 @@ public class SellerServiceController : Controller
                 return BadRequest("Account has requested to be a seller and not been approved yet.");
             return Unauthorized("Account is not a seller.");
         }
+        if(existingSellerProfile.Suspended)
+            return BadRequest("Seller is suspended.");
         var portfolio = await _dbContext.SellerProfilePortfolioPieces.FirstOrDefaultAsync(x=>x.Id==portfolioId);
         if(portfolio==null)
             return NotFound("Portfolio piece not found.");

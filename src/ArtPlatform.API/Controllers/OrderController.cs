@@ -111,6 +111,9 @@ public class OrderController : Controller
             .FirstOrDefaultAsync(x=>x.Id==sellerId);
         if(seller==null)
             return NotFound("Seller not found.");
+        if(seller.Suspended)
+            return NotFound("Seller is suspended.");
+        
         var service = await _dbContext.SellerServices
             .Include(x=>x.Reviews)
             .FirstOrDefaultAsync(x=>x.Id==serviceId);

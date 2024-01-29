@@ -33,6 +33,7 @@ public class SellerOrderController : Controller
             .Include(x=>x.Seller)
             .Where(x => x.Seller.UserId == userId && status==null ? true : status==x.Status)
             .Skip(offset).Take(pageSize).ToListAsync();
+        
         var result = orders.Select(x => x.ToModel()).ToList();
         return Ok(result);
     }
@@ -55,6 +56,11 @@ public class SellerOrderController : Controller
     public async Task<IActionResult> CancelOrder(int orderId)
     {
         var userId = User.GetUserId();
+        var seller = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(x=>x.UserId==userId);
+        if(seller==null)
+            return NotFound("User it not a seller.");
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
         var order = await _dbContext.SellerServiceOrders
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.Seller.UserId==userId);
@@ -80,6 +86,11 @@ public class SellerOrderController : Controller
     public async Task<IActionResult> AcceptOrder(int orderId)
     {
         var userId = User.GetUserId();
+        var seller = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(x=>x.UserId==userId);
+        if(seller==null)
+            return NotFound("User it not a seller.");
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
         var order = await _dbContext.SellerServiceOrders
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.Seller.UserId==userId);
@@ -104,6 +115,11 @@ public class SellerOrderController : Controller
     public async Task<IActionResult> StartOrder(int orderId)
     {
         var userId = User.GetUserId();
+        var seller = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(x=>x.UserId==userId);
+        if(seller==null)
+            return NotFound("User it not a seller.");
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
         var order = await _dbContext.SellerServiceOrders
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.Seller.UserId==userId);
@@ -128,6 +144,12 @@ public class SellerOrderController : Controller
     public async Task<IActionResult> AdjustPrice(int orderId,[FromQuery]double price)
     {
         var userId = User.GetUserId();
+        var seller = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(x=>x.UserId==userId);
+        if(seller==null)
+            return NotFound("User it not a seller.");
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
+        
         var order = await _dbContext.SellerServiceOrders
             .Include(x=>x.Seller)
             .Include(x=>x.SellerService)
@@ -159,6 +181,11 @@ public class SellerOrderController : Controller
             .Include(x=>x.Seller)
             .Include(x=>x.SellerService)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.Seller.UserId==userId);
+        var seller = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(x=>x.UserId==userId);
+        if(seller==null)
+            return NotFound("User it not a seller.");
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
         if(order==null)
             return NotFound("Order not found.");
         if(order.Seller.UserId!=userId)
@@ -185,6 +212,11 @@ public class SellerOrderController : Controller
         var order = await _dbContext.SellerServiceOrders
             .Include(x=>x.Seller)
             .FirstOrDefaultAsync(x=>x.Id==orderId && x.Seller.UserId==userId);
+        var seller = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(x=>x.UserId==userId);
+        if(seller==null)
+            return NotFound("User it not a seller.");
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
         if(order==null)
             return NotFound("Order not found.");
         if(order.BuyerId!=userId && order.Seller.UserId!=userId)
@@ -204,6 +236,11 @@ public class SellerOrderController : Controller
     public async Task<IActionResult> Message(int orderId, [FromBody] SellerServiceOrderMessageModel model)
     {
         var userId = User.GetUserId();
+        var seller = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(x=>x.UserId==userId);
+        if(seller==null)
+            return NotFound("User it not a seller.");
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
         var order = await _dbContext.SellerServiceOrders
             .Include(x=>x.Messages)
             .Include(x=>x.Seller)
@@ -236,6 +273,11 @@ public class SellerOrderController : Controller
     public async Task<IActionResult> MessageAttachment(int orderId, int messageId,IFormFile file)
     {
         var userId = User.GetUserId();
+        var seller = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(x=>x.UserId==userId);
+        if(seller==null)
+            return NotFound("User it not a seller.");
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
         var order = await _dbContext.SellerServiceOrders
             .Include(x=>x.Messages)
             .Include(x=>x.Seller)
@@ -270,6 +312,11 @@ public class SellerOrderController : Controller
     public async Task<IActionResult> MessageAttachments(int orderId, int messageId)
     {
         var userId = User.GetUserId();
+        var seller = await _dbContext.UserSellerProfiles.FirstOrDefaultAsync(x=>x.UserId==userId);
+        if(seller==null)
+            return NotFound("User it not a seller.");
+        if(seller.Suspended)
+            return BadRequest("Seller is suspended.");
         var order = await _dbContext.SellerServiceOrders
             .Include(x=>x.Messages)
             .Include(x=>x.Seller)
