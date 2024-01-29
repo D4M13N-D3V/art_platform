@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "comissions.app.database.migrator", "comissions.app.database.migrator\comissions.app.database.migrator.csproj", "{FD7E7FCB-2926-4FA6-BF52-84608461786D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "comissions.app.api", "comissions.app.api\comissions.app.api.csproj", "{83F914D0-0C7A-47F7-A7D7-F9296AD00A97}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "comissions.app.database", "comissions.app.database\comissions.app.database.csproj", "{0D3B41AA-4D1A-4DF2-A5BB-E8BA74B19422}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FD7E7FCB-2926-4FA6-BF52-84608461786D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD7E7FCB-2926-4FA6-BF52-84608461786D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD7E7FCB-2926-4FA6-BF52-84608461786D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD7E7FCB-2926-4FA6-BF52-84608461786D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83F914D0-0C7A-47F7-A7D7-F9296AD00A97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83F914D0-0C7A-47F7-A7D7-F9296AD00A97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83F914D0-0C7A-47F7-A7D7-F9296AD00A97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83F914D0-0C7A-47F7-A7D7-F9296AD00A97}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D3B41AA-4D1A-4DF2-A5BB-E8BA74B19422}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D3B41AA-4D1A-4DF2-A5BB-E8BA74B19422}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D3B41AA-4D1A-4DF2-A5BB-E8BA74B19422}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D3B41AA-4D1A-4DF2-A5BB-E8BA74B19422}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+	EndGlobalSection
+EndGlobal
